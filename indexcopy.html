@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173b6c">
+    <title>Visual Editor</title>
+    <link id="favicon" rel="icon" href="">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ---------- Visual editor overlay ---------- */
+        body.editor-on [data-editable] {
+            outline: 2px dashed rgba(23, 59, 108, 0.35);
+            outline-offset: 2px;
+            border-radius: 6px;
+            cursor: text;
+            transition: outline-color .15s ease, background .15s ease;
+        }
+        body.editor-on [data-editable]:hover,
+        body.editor-on [data-editable]:focus {
+            outline-color: #173b6c;
+            background: rgba(244, 185, 66, 0.12);
+        }
+        body.editor-on [data-editable-image] {
+            position: relative;
+            cursor: pointer;
+        }
+        body.editor-on [data-editable-image]::after {
+            content: "\F4CB  Click to change image";
+            font-family: "bootstrap-icons", "Inter", sans-serif;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            background: rgba(23, 59, 108, 0.9);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 600;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .15s ease;
+        }
+        body.editor-on [data-editable-image]:hover::after {
+            opacity: 1;
+        }
+        body.editor-on [data-editable-image] {
+            outline: 2px dashed rgba(23, 59, 108, 0.35);
+            outline-offset: 2px;
+            border-radius: 8px;
+        }
+        body.editor-on [data-editable-image]:hover {
+            outline-color: #173b6c;
+        }
+        body.editor-on [data-array-item] {
+            position: relative;
+        }
+        body.editor-on [data-array-item] > .editor-item-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 4;
+            display: flex;
+            gap: 4px;
+        }
+
+        /* ---------- Floating toolbar ---------- */
+        .editor-fab {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 1080;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 18px 55px rgba(18, 42, 74, 0.25);
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            width: 240px;
+            border: 1px solid rgba(18, 42, 74, 0.08);
+        }
+        .editor-fab .fab-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            color: #173b6c;
+            font-size: 0.9rem;
+        }
+        .editor-fab button {
+            width: 100%;
+            text-align: left;
+            justify-content: flex-start;
+        }
+        .editor-fab.minimized {
+            width: auto;
+            padding: 0.4rem 0.6rem;
+        }
+        .editor-fab.minimized .fab-body { display: none; }
+        .editor-status {
+            font-size: 0.75rem;
+            color: #68758a;
+        }
+
+        /* ---------- Add buttons ---------- */
+        .editor-add {
+            display: none;
+        }
+        body.editor-on .editor-add {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        /* ---------- Modal used for images ---------- */
+        .editor-panel textarea { font-family: inherit; min-height: 120px; }
+
+        /* Loosen positioning for delete/move buttons inside cards */
+        body.editor-on .course-card,
+        body.editor-on .facility-card,
+        body.editor-on .faculty-card,
+        body.editor-on .review-card,
+        body.editor-on .achievement-card {
+            padding-top: 3rem;
+        }
+    </style>
+</head>
+<body class="editor-on">
+
+    <!-- Page loader -->
+    <div id="pageLoader" class="loader">
+        <div class="loader-wrap">
+            <div class="loader-inner">
+                <div class="loader-ring"></div>
+                <img id="loaderLogo" class="loader-logo" alt="" data-college-logo>
+            </div>
+            <div id="loaderTitle" class="loader-brand"></div>
+            <div id="loaderSubtitle" class="loader-subbrand"></div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="mainNavbar" class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#home">
+                <img id="navLogo" class="brand-mark" alt="" data-college-logo>
+                <span id="navCollegeName" class="fw-bold"></span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div id="mainNav" class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#courses">Courses</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#facilities">Facilities</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faculty">Faculty</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#gallery">Gallery</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#reviews">Reviews</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#admissions">Admissions</a></li>
+                    <li class="nav-item ms-lg-2"><a class="btn btn-brand" href="#contact">Contact Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header id="home" class="hero">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6 reveal">
+                    <span class="eyebrow"><i class="bi bi-mortarboard-fill"></i> Higher Secondary Education</span>
+                    <h1 id="heroTitle" class="mt-4"></h1>
+                    <h3 id="heroSubtitle" class="text-primary fw-bold"></h3>
+                    <p id="heroDescription" class="lead mt-3"></p>
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <a id="heroPrimaryBtn" class="btn btn-brand" href="#about"></a>
+                        <a id="heroSecondaryBtn" class="btn btn-gold" href="#admissions"></a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 small text-secondary mt-4">
+                        <span id="heroLocationWrap" class="d-none"><i class="bi bi-geo-alt me-1"></i><span id="heroLocation"></span></span>
+                        <span id="heroEstYearWrap" class="d-none"><i class="bi bi-calendar3 me-1"></i>Est. <span id="heroEstYear"></span></span>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <img id="heroImage" class="hero-image reveal" alt="">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Statistics -->
+    <section id="statsSection" class="section-pad pt-0">
+        <div class="container">
+            <div id="statsGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="statistics"><i class="bi bi-plus-lg"></i> Add stat</button></div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="section-pad soft">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-5">
+                    <img id="aboutImage" class="hero-image" alt="">
+                </div>
+                <div class="col-lg-7">
+                    <div class="section-title">
+                        <span class="eyebrow">About Us</span>
+                        <h2 id="aboutTitle" class="mt-3"></h2>
+                        <p id="aboutDescription" class="text-secondary"></p>
+                    </div>
+                    <ul id="aboutHighlights" class="highlight-list list-unstyled mt-4"></ul>
+                    <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="about.highlights"><i class="bi bi-plus-lg"></i> Add highlight</button></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision & Mission -->
+    <section id="visionMissionSection" class="section-pad">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="v-card h-100">
+                        <div class="feature-icon mb-3"><i class="bi bi-eye"></i></div>
+                        <h3>Our Vision</h3>
+                        <p id="visionText" class="text-secondary mb-0"></p>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="v-card h-100">
+                        <div class="feature-icon mb-3"><i class="bi bi-bullseye"></i></div>
+                        <h3>Our Mission</h3>
+                        <p id="missionText" class="text-secondary mb-3"></p>
+                        <div id="valuesGrid" class="values-grid"></div>
+                        <div class="editor-add mt-2"><button type="button" class="btn btn-outline-primary btn-sm" data-add="visionMission.values"><i class="bi bi-plus-lg"></i> Add value</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Principal -->
+    <section id="principalSection" class="section-pad soft">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-4">
+                    <img id="principalImage" class="hero-image" alt="">
+                </div>
+                <div class="col-lg-8">
+                    <span class="eyebrow">Leadership</span>
+                    <h2 class="mt-3">Principal's Message</h2>
+                    <div id="principalMessage" class="fs-5 text-secondary mb-3"></div>
+                    <div id="principalName" class="fw-bold"></div>
+                    <div id="principalDesignation" class="text-primary fw-semibold"></div>
+                    <div id="principalPlaceholder" class="alert alert-light border mt-3 d-none">Principal information can be added.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Courses -->
+    <section id="courses" class="section-pad">
+        <div class="container">
+            <div class="section-title mb-5">
+                <span class="eyebrow">Academics</span>
+                <h2 class="mt-3">Courses Offered</h2>
+                <p class="text-secondary">Course combinations are driven entirely by config.js.</p>
+            </div>
+            <div id="coursesGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="courses"><i class="bi bi-plus-lg"></i> Add course</button></div>
+        </div>
+    </section>
+
+    <!-- Facilities -->
+    <section id="facilities" class="section-pad soft">
+        <div class="container">
+            <div class="section-title mb-5">
+                <span class="eyebrow">Campus Life</span>
+                <h2 class="mt-3">Facilities &amp; Resources</h2>
+            </div>
+            <div id="facilitiesGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="facilities"><i class="bi bi-plus-lg"></i> Add facility</button></div>
+        </div>
+    </section>
+
+    <!-- Faculty -->
+    <section id="faculty" class="section-pad">
+        <div class="container">
+            <div class="section-title mb-5">
+                <span class="eyebrow">Our Team</span>
+                <h2 class="mt-3">Faculty &amp; Staff</h2>
+            </div>
+            <div id="facultyGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="faculty"><i class="bi bi-plus-lg"></i> Add faculty member</button></div>
+        </div>
+    </section>
+
+    <!-- Achievements -->
+    <section id="achievementsSection" class="section-pad soft">
+        <div class="container">
+            <div class="section-title mb-5">
+                <span class="eyebrow">Milestones</span>
+                <h2 class="mt-3">Achievements</h2>
+            </div>
+            <div id="achievementsGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="achievements"><i class="bi bi-plus-lg"></i> Add achievement</button></div>
+        </div>
+    </section>
+
+    <!-- Gallery -->
+    <section id="gallery" class="section-pad soft">
+        <div class="container">
+            <div class="section-title mb-4">
+                <span class="eyebrow">Gallery</span>
+                <h2 class="mt-3">Campus Moments</h2>
+            </div>
+            <div id="galleryFilters" class="gallery-filters mb-4"></div>
+            <div id="galleryGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="gallery"><i class="bi bi-plus-lg"></i> Add photo</button></div>
+        </div>
+    </section>
+
+    <!-- Reviews -->
+    <section id="reviews" class="section-pad">
+        <div class="container">
+            <div class="section-title mb-5">
+                <span class="eyebrow">Testimonials</span>
+                <h2 class="mt-3">Student Reviews</h2>
+            </div>
+            <div id="reviewsGrid" class="row g-4"></div>
+            <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="reviews"><i class="bi bi-plus-lg"></i> Add review</button></div>
+        </div>
+    </section>
+
+    <!-- Admissions -->
+    <section id="admissions" class="section-pad soft">
+        <div class="container">
+            <div class="row g-5 align-items-start">
+                <div class="col-lg-7">
+                    <span class="eyebrow">Join Us</span>
+                    <h2 id="admissionTitle" class="mt-3"></h2>
+                    <p id="admissionDescription" class="text-secondary"></p>
+                    <h5 class="mt-4">Typical Process</h5>
+                    <ol id="admissionProcess" class="process-list list-unstyled"></ol>
+                    <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="admission.process"><i class="bi bi-plus-lg"></i> Add step</button></div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="p-4 rounded-4 bg-white shadow-sm border">
+                        <h5>Eligibility</h5>
+                        <p id="admissionEligibility" class="text-secondary"></p>
+                        <h6 id="admissionDocumentsTitle" class="mt-3 d-none">Documents Required</h6>
+                        <ul id="admissionDocuments" class="documents-list list-unstyled"></ul>
+                        <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="admission.documents"><i class="bi bi-plus-lg"></i> Add document</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="section-pad">
+        <div class="container">
+            <div class="row g-4 align-items-stretch">
+                <div class="col-lg-5">
+                    <div class="contact-card h-100">
+                        <h2>Contact Us</h2>
+                        <p class="text-white-50">Reach out for current admissions, course combinations and other details.</p>
+                        <div class="mt-4">
+                            <div id="contactAddressWrap" class="mb-3 d-none">
+                                <div class="small text-white-50">Address</div>
+                                <div id="contactAddress"></div>
+                            </div>
+                            <div id="contactPhone1Wrap" class="mb-3 d-none">
+                                <div class="small text-white-50">Phone</div>
+                                <a id="contactPhone1" href="#"></a>
+                            </div>
+                            <div id="contactPhone2Wrap" class="mb-3 d-none">
+                                <div class="small text-white-50">Alternate Phone</div>
+                                <a id="contactPhone2" href="#"></a>
+                            </div>
+                            <div id="contactEmailWrap" class="mb-3 d-none">
+                                <div class="small text-white-50">Email</div>
+                                <a id="contactEmail" href="#"></a>
+                            </div>
+                            <div id="officeHoursWrap" class="mb-3 d-none">
+                                <div class="small text-white-50">Office Hours</div>
+                                <div id="officeHours"></div>
+                            </div>
+                        </div>
+                        <div id="socialLinks" class="d-flex flex-wrap gap-2 mt-4"></div>
+                        <div class="editor-add mt-2"><button type="button" class="btn btn-outline-light btn-sm" data-add="socialMedia"><i class="bi bi-plus-lg"></i> Add social link</button></div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <iframe id="mapFrame" class="map-frame" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Map"></iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer py-4">
+        <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <img id="footerLogo" class="brand-mark" alt="" data-college-logo>
+                <span id="footerText"></span>
+            </div>
+            <div class="small">
+                &copy; <span id="currentYear"></span> <span id="footerCollegeName"></span>. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Gallery Modal -->
+    <div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content bg-dark border-0">
+                <div class="modal-header border-0">
+                    <div>
+                        <h5 id="galleryModalTitle" class="modal-title text-white"></h5>
+                        <small id="galleryModalDescription" class="text-white-50"></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <img id="galleryModalImage" class="w-100 rounded-3" alt="">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor toolbar -->
+    <div id="editorFab" class="editor-fab">
+        <div class="fab-title">
+            <span><i class="bi bi-pencil-square"></i> Visual Editor</span>
+            <button id="fabToggle" class="btn btn-sm btn-link p-0" title="Minimize"><i class="bi bi-dash-lg"></i></button>
+        </div>
+        <div class="fab-body d-flex flex-column gap-1">
+            <div class="editor-status" id="editorStatus">Click any text to edit. Click images to change their URL.</div>
+            <button id="btnToggleMode" class="btn btn-outline-primary btn-sm"><i class="bi bi-eye"></i> Preview</button>
+            <button id="btnCopyJson"  class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard"></i> Copy JSON</button>
+            <button id="btnDownloadJson" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Download JSON</button>
+            <button id="btnDownloadConfig" class="btn btn-primary btn-sm" style="background:#173b6c;border:0"><i class="bi bi-filetype-js"></i> Download config.js</button>
+            <button id="btnReset" class="btn btn-outline-danger btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+            <a href="config-editor.html" class="btn btn-link btn-sm p-0"><i class="bi bi-list-columns"></i> Form editor</a>
+        </div>
+    </div>
+
+    <!-- Prompt modal for editing images / adding simple values -->
+    <div class="modal fade" id="editorPromptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content editor-panel">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editorPromptTitle">Edit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label id="editorPromptLabel" class="form-label">Value</label>
+                    <textarea id="editorPromptValue" class="form-control"></textarea>
+                    <div class="form-text" id="editorPromptHelp"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="editorPromptSave" style="background:#173b6c;border:0">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    (function () {
+
+        "use strict";
+
+        // -----------------------------------------------------
+        // Working config (deep-cloned so edits don't leak).
+        // -----------------------------------------------------
+
+        var workingConfig = deepClone(
+            window.COLLEGE_CONFIG || window.TIMES_PU_CONFIG || {}
+        );
+
+        var originalConfig = deepClone(workingConfig);
+
+        function deepClone(o) { return JSON.parse(JSON.stringify(o || {})); }
+
+        function rerender() {
+            if (!window.CollegeSite) return;
+            window.CollegeSite.render(workingConfig);
+            requestAnimationFrame(bindEditable);
+        }
+
+
+        // -----------------------------------------------------
+        // Element ID -> config path mapping (simple fields)
+        // -----------------------------------------------------
+
+        var SIMPLE_MAP = {
+            navCollegeName:         "navbar.brandName",
+            loaderTitle:            "website.loader.title",
+            loaderSubtitle:         "website.loader.subtitle",
+
+            heroTitle:              "hero.title",
+            heroSubtitle:           "hero.subtitle",
+            heroDescription:        "hero.description",
+            heroLocation:           "hero.locationText",
+            heroEstYear:            "college.establishedYear",
+            heroPrimaryBtn:         "hero.primaryButton.text",
+            heroSecondaryBtn:       "hero.secondaryButton.text",
+
+            aboutTitle:             "about.title",
+            aboutDescription:       "about.description",
+
+            visionText:             "visionMission.vision",
+            missionText:            "visionMission.mission",
+
+            principalName:          "principal.name",
+            principalDesignation:   "principal.designation",
+            principalMessage:       "principal.message",
+
+            admissionTitle:         "admission.title",
+            admissionDescription:   "admission.description",
+            admissionEligibility:   "admission.eligibility",
+
+            contactAddress:         "contact.address",
+            contactPhone1:          "contact.phone1",
+            contactPhone2:          "contact.phone2",
+            contactEmail:           "contact.email",
+            officeHours:            "contact.officeHours",
+
+            footerText:             "website.footerText",
+            footerCollegeName:      "college.shortName"
+        };
+
+        var IMAGE_MAP = {
+            heroImage:       "hero.image",
+            aboutImage:      "about.image",
+            principalImage:  "principal.photo"
+        };
+
+
+        // -----------------------------------------------------
+        // Array-item mappings
+        //
+        // Each entry: { grid: containerId, path: "config.path",
+        //               textFields: [{selector, key}],
+        //               imageFields: [{selector, key}] }
+        // -----------------------------------------------------
+
+        var ARRAY_MAPS = [
+            {
+                grid: "coursesGrid",
+                path: "courses",
+                itemSelector: ".course-card",
+                textFields: [
+                    { selector: "h3",                 key: "name" },
+                    { selector: ".course-full-name",  key: "fullName" },
+                    { selector: ".course-meta span:nth-child(1)", key: "duration" }
+                ]
+            },
+            {
+                grid: "facilitiesGrid",
+                path: "facilities",
+                itemSelector: ".facility-card",
+                textFields: [
+                    { selector: "h3", key: "name" },
+                    { selector: "p",  key: "description" }
+                ]
+            },
+            {
+                grid: "facultyGrid",
+                path: "faculty",
+                itemSelector: ".faculty-card",
+                textFields: [
+                    { selector: "h3",                key: "name" },
+                    { selector: ".faculty-role",     key: "designation" },
+                    { selector: ".faculty-subject",  key: "subject" }
+                ],
+                imageFields: [
+                    { selector: "img", key: "photo" }
+                ]
+            },
+            {
+                grid: "achievementsGrid",
+                path: "achievements",
+                itemSelector: ".achievement-card",
+                textFields: [
+                    { selector: ".achievement-year", key: "year" },
+                    { selector: "h3",                key: "title" },
+                    { selector: "p",                 key: "description" }
+                ],
+                imageFields: [
+                    { selector: "img", key: "image" }
+                ]
+            },
+            {
+                grid: "galleryGrid",
+                path: "gallery",
+                itemSelector: ".gallery-card",
+                textFields: [
+                    { selector: ".gallery-overlay span",    key: "category" },
+                    { selector: ".gallery-overlay strong",  key: "title" }
+                ],
+                imageFields: [
+                    { selector: "img", key: "image" }
+                ]
+            },
+            {
+                grid: "reviewsGrid",
+                path: "reviews",
+                itemSelector: ".review-card",
+                textFields: [
+                    { selector: "blockquote",              key: "review" },
+                    { selector: ".review-user strong",     key: "name" },
+                    { selector: ".review-user small",      key: "course" }
+                ]
+            },
+            {
+                grid: "statsGrid",
+                path: "statistics",
+                itemSelector: ".stat-card",
+                textFields: [
+                    { selector: ".stat-label", key: "label" }
+                ]
+            }
+        ];
+
+        // Lists that are simple string arrays
+        var STRING_LIST_MAPS = [
+            { grid: "aboutHighlights",     path: "about.highlights",     itemSelector: "li",   textSelector: "span" },
+            { grid: "valuesGrid",          path: "visionMission.values", itemSelector: ".value-pill" },
+            { grid: "admissionProcess",    path: "admission.process",    itemSelector: "li",   textSelector: "span:last-child" },
+            { grid: "admissionDocuments",  path: "admission.documents",  itemSelector: "li",   textSelector: "span" }
+        ];
+
+
+        // -----------------------------------------------------
+        // Path helpers
+        // -----------------------------------------------------
+
+        function getPath(obj, path) {
+            var parts = path.split(".");
+            var cur = obj;
+            for (var i = 0; i < parts.length; i++) {
+                if (cur == null) return undefined;
+                cur = cur[parts[i]];
+            }
+            return cur;
+        }
+
+        function setPath(obj, path, value) {
+            var parts = path.split(".");
+            var cur = obj;
+            for (var i = 0; i < parts.length - 1; i++) {
+                if (cur[parts[i]] == null || typeof cur[parts[i]] !== "object") {
+                    cur[parts[i]] = {};
+                }
+                cur = cur[parts[i]];
+            }
+            cur[parts[parts.length - 1]] = value;
+        }
+
+
+        // -----------------------------------------------------
+        // Bind editable behaviour after every render
+        // -----------------------------------------------------
+
+        function bindEditable() {
+
+            // Simple text fields
+            Object.keys(SIMPLE_MAP).forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                makeTextEditable(el, SIMPLE_MAP[id]);
+            });
+
+            // Simple image fields
+            Object.keys(IMAGE_MAP).forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                makeImageEditable(el, IMAGE_MAP[id]);
+            });
+
+            // Array item cards
+            ARRAY_MAPS.forEach(function (m) {
+                var container = document.getElementById(m.grid);
+                if (!container) return;
+                var items = container.querySelectorAll(m.itemSelector);
+                items.forEach(function (item, index) {
+                    item.setAttribute("data-array-item", "1");
+                    addDeleteButton(item, m.path, index);
+
+                    (m.textFields || []).forEach(function (f) {
+                        var target = item.querySelector(f.selector);
+                        if (target) {
+                            makeTextEditable(target, m.path + "." + index + "." + f.key);
+                        }
+                    });
+                    (m.imageFields || []).forEach(function (f) {
+                        var target = item.querySelector(f.selector);
+                        if (target && target.tagName === "IMG") {
+                            makeImageEditable(target, m.path + "." + index + "." + f.key);
+                        }
+                    });
+                });
+            });
+
+            // Simple string lists
+            STRING_LIST_MAPS.forEach(function (m) {
+                var container = document.getElementById(m.grid);
+                if (!container) return;
+                var items = container.querySelectorAll(m.itemSelector);
+                items.forEach(function (item, index) {
+                    item.setAttribute("data-array-item", "1");
+                    addDeleteButton(item, m.path, index);
+
+                    var target = m.textSelector
+                        ? item.querySelector(m.textSelector)
+                        : item;
+
+                    if (target) {
+                        makeTextEditable(target, m.path + "." + index);
+                    }
+                });
+            });
+
+            // Social links - each social <a> maps to socialMedia[i].url
+            var socialContainer = document.getElementById("socialLinks");
+            if (socialContainer) {
+                var links = socialContainer.querySelectorAll(".social-link");
+                links.forEach(function (link, index) {
+                    link.setAttribute("data-array-item", "1");
+                    addDeleteButton(link, "socialMedia", getVisibleSocialIndex(index));
+                    link.addEventListener("click", function (evt) {
+                        evt.preventDefault();
+                        var actualIdx = getVisibleSocialIndex(index);
+                        promptFor("Social URL", "URL for this platform:",
+                            (workingConfig.socialMedia[actualIdx] || {}).url || "",
+                            function (val) {
+                                workingConfig.socialMedia[actualIdx].url = val;
+                                rerender();
+                            }
+                        );
+                    });
+                });
+            }
+        }
+
+        function getVisibleSocialIndex(visibleIdx) {
+            // socialMedia in config may contain entries with empty urls
+            // that are filtered out at render time. Map the visible
+            // index back to the actual config index.
+            var list = workingConfig.socialMedia || [];
+            var count = 0;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] && list[i].url) {
+                    if (count === visibleIdx) return i;
+                    count++;
+                }
+            }
+            return -1;
+        }
+
+
+        function makeTextEditable(el, path) {
+            if (el.dataset.editableBound === "1") return;
+            el.dataset.editableBound = "1";
+            el.dataset.editable = path;
+
+            el.setAttribute("contenteditable", "true");
+            el.setAttribute("spellcheck", "true");
+
+            el.addEventListener("input", function () {
+                var text  = el.textContent;
+                var value = text;
+                var current = getPath(workingConfig, path);
+                if (typeof current === "number" && text !== "") {
+                    var n = Number(text);
+                    if (!isNaN(n)) value = n;
+                }
+                if (typeof value === "string" && /\.review$/.test(path)) {
+                    value = value.replace(/^[\u201C\u201D"'\s]+|[\u201C\u201D"'\s]+$/g, "");
+                }
+                setPath(workingConfig, path, value);
+                status("Edited " + path);
+            });
+
+            el.addEventListener("keydown", function (evt) {
+                if (evt.key === "Enter" && !evt.shiftKey && el.tagName !== "BLOCKQUOTE" && el.tagName !== "P" && el.tagName !== "DIV") {
+                    evt.preventDefault();
+                    el.blur();
+                }
+            });
+        }
+
+        function makeImageEditable(el, path) {
+            if (el.dataset.editableImageBound === "1") return;
+            el.dataset.editableImageBound = "1";
+            el.setAttribute("data-editable-image", path);
+
+            el.addEventListener("click", function (evt) {
+                evt.preventDefault();
+                promptFor(
+                    "Change image",
+                    "Paste the new image URL:",
+                    getPath(workingConfig, path) || "",
+                    function (val) {
+                        setPath(workingConfig, path, val);
+                        rerender();
+                    }
+                );
+            });
+        }
+
+
+        // -----------------------------------------------------
+        // Delete / add buttons
+        // -----------------------------------------------------
+
+        function addDeleteButton(container, arrayPath, index) {
+            if (container.querySelector(":scope > .editor-item-actions")) return;
+
+            var wrap = document.createElement("div");
+            wrap.className = "editor-item-actions";
+
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn btn-sm btn-danger";
+            btn.title     = "Remove";
+            btn.innerHTML = '<i class="bi bi-trash"></i>';
+            btn.addEventListener("click", function (evt) {
+                evt.stopPropagation();
+                evt.preventDefault();
+                var arr = getPath(workingConfig, arrayPath);
+                if (Array.isArray(arr) && index >= 0 && index < arr.length) {
+                    arr.splice(index, 1);
+                    rerender();
+                }
+            });
+
+            wrap.appendChild(btn);
+            container.appendChild(wrap);
+        }
+
+        // Add-buttons (declared in HTML with data-add="…")
+        document.querySelectorAll("[data-add]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                addArrayItem(btn.dataset.add);
+            });
+        });
+
+        var ARRAY_TEMPLATES = {
+            "statistics":              { key: "new", value: 0, label: "New Stat", suffix: "" },
+            "about.highlights":        "New highlight",
+            "visionMission.values":    "New Value",
+            "courses":                 { name: "New Course", fullName: "", description: "", duration: "2 Years", eligibility: "" },
+            "facilities":              { name: "New Facility", icon: "bi-building", description: "" },
+            "faculty":                 { name: "New Faculty", designation: "", subject: "", photo: "" },
+            "achievements":            { title: "New Achievement", year: "", description: "", image: "" },
+            "gallery":                 { category: "Campus", title: "New Photo", description: "", image: "", alt: "" },
+            "reviews":                 { name: "Student", course: "", year: "", rating: 5, review: "New review", photo: "" },
+            "admission.process":       "New step",
+            "admission.documents":     "New document",
+            "socialMedia":             { platform: "custom", icon: "bi-link-45deg", url: "https://example.com" }
+        };
+
+        function addArrayItem(path) {
+            var template = ARRAY_TEMPLATES[path];
+            if (template === undefined) return;
+
+            var arr = getPath(workingConfig, path);
+            if (!Array.isArray(arr)) {
+                setPath(workingConfig, path, []);
+                arr = getPath(workingConfig, path);
+            }
+            arr.push(typeof template === "object"
+                ? deepClone(template)
+                : template);
+
+            rerender();
+        }
+
+
+        // -----------------------------------------------------
+        // Prompt modal
+        // -----------------------------------------------------
+
+        var promptModal;
+
+        function promptFor(title, label, value, onSave) {
+
+            document.getElementById("editorPromptTitle").textContent = title;
+            document.getElementById("editorPromptLabel").textContent = label;
+            document.getElementById("editorPromptValue").value       = value || "";
+            document.getElementById("editorPromptHelp").textContent  = "";
+
+            var modalEl = document.getElementById("editorPromptModal");
+            if (!promptModal && window.bootstrap) {
+                promptModal = new window.bootstrap.Modal(modalEl);
+            }
+
+            var saveBtn = document.getElementById("editorPromptSave");
+            var newBtn  = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+
+            newBtn.addEventListener("click", function () {
+                var v = document.getElementById("editorPromptValue").value;
+                promptModal.hide();
+                onSave(v);
+            });
+
+            promptModal.show();
+        }
+
+
+        // -----------------------------------------------------
+        // Toolbar actions
+        // -----------------------------------------------------
+
+        document.getElementById("btnToggleMode").addEventListener("click", function () {
+            var on = document.body.classList.toggle("editor-on") === false ? false : true;
+            on = document.body.classList.contains("editor-on");
+
+            queryAll("[contenteditable]").forEach(function (el) {
+                el.setAttribute("contenteditable", on ? "true" : "false");
+            });
+
+            this.innerHTML = on
+                ? '<i class="bi bi-eye"></i> Preview'
+                : '<i class="bi bi-pencil-square"></i> Edit';
+        });
+
+        document.getElementById("btnCopyJson").addEventListener("click", function () {
+            var text = JSON.stringify(workingConfig, null, 2);
+            navigator.clipboard.writeText(text).then(
+                function () { status("JSON copied to clipboard"); },
+                function () { status("Copy failed", true); }
+            );
+        });
+
+        document.getElementById("btnDownloadJson").addEventListener("click", function () {
+            download("config.json",
+                JSON.stringify(workingConfig, null, 2),
+                "application/json");
+            status("Downloaded config.json");
+        });
+
+        document.getElementById("btnDownloadConfig").addEventListener("click", function () {
+            var js =
+                "/* Generated by Visual Editor */\n" +
+                "window.COLLEGE_CONFIG = " +
+                JSON.stringify(workingConfig, null, 4) +
+                ";\n" +
+                "window.TIMES_PU_CONFIG = window.COLLEGE_CONFIG;\n";
+            download("config.js", js, "application/javascript");
+            status("Downloaded config.js");
+        });
+
+        document.getElementById("btnReset").addEventListener("click", function () {
+            if (!confirm("Discard all edits and reload original config?")) return;
+            workingConfig = deepClone(originalConfig);
+            rerender();
+            status("Reset to original config");
+        });
+
+        document.getElementById("fabToggle").addEventListener("click", function () {
+            var fab = document.getElementById("editorFab");
+            fab.classList.toggle("minimized");
+            this.innerHTML = fab.classList.contains("minimized")
+                ? '<i class="bi bi-plus-lg"></i>'
+                : '<i class="bi bi-dash-lg"></i>';
+        });
+
+        function status(message, isError) {
+            var el = document.getElementById("editorStatus");
+            el.textContent = message;
+            el.style.color = isError ? "#c62828" : "#68758a";
+            clearTimeout(status.timer);
+            status.timer = setTimeout(function () {
+                el.textContent = "Click any text to edit. Click images to change their URL.";
+                el.style.color = "#68758a";
+            }, 3000);
+        }
+
+        function queryAll(sel) {
+            return Array.prototype.slice.call(document.querySelectorAll(sel));
+        }
+
+        function download(filename, content, mime) {
+            var blob = new Blob([content], { type: mime });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement("a");
+            a.href     = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(url); }, 100);
+        }
+
+
+        // -----------------------------------------------------
+        // Boot: wait for CollegeSite to be ready, then bind.
+        // -----------------------------------------------------
+
+        function boot() {
+            if (!window.CollegeSite) {
+                setTimeout(boot, 30);
+                return;
+            }
+            window.CollegeSite.render(workingConfig);
+            requestAnimationFrame(bindEditable);
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", boot);
+        } else {
+            boot();
+        }
+
+    })();
+    </script>
+
+</body>
+</html>
