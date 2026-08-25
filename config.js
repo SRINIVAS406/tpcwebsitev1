@@ -18,7 +18,7 @@ window.COLLEGE_CONFIG = {
         "ogImage": "https://images.unsplash.com/photo-1562774053-701939374585?w=1200&h=630&fit=crop&auto=format&q=80"
     },
     "navbar": {
-        "brandName": "GNDEC PU College"
+        "brandName": "Times PU College"
     },
     "college": {
         "name": "TIMES PU COLLEGE",
