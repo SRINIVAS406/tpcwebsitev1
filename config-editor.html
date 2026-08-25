@@ -14,6 +14,24 @@
         .side-nav .nav-link { color: #38455e; font-weight: 600; border-radius: 10px; padding: 0.55rem 0.85rem; }
         .side-nav .nav-link.active { background: var(--primary); color: #fff; }
         .side-nav .nav-link:hover:not(.active) { background: #eaf1fb; color: var(--primary); }
+
+        @media (max-width: 991.98px) {
+            .side-nav .nav {
+                flex-direction: row !important;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 0.35rem !important;
+                padding-bottom: 0.25rem;
+                scrollbar-width: thin;
+            }
+            .side-nav .nav-link {
+                white-space: nowrap;
+                flex: 0 0 auto;
+                padding: 0.45rem 0.75rem;
+                font-size: 0.9rem;
+            }
+            .side-nav { position: static !important; }
+        }
         .section-panel { display: none; }
         .section-panel.active { display: block; }
         .array-item { border: 1px solid #e3eaf3; border-radius: 14px; padding: 1rem; background: #fbfcfe; position: relative; }
@@ -26,6 +44,83 @@
         .toast-msg { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1080; }
         .img-preview { max-height: 80px; border-radius: 8px; background: #eaf1fb; }
         .section-title-lg { font-weight: 800; color: var(--primary); }
+
+        /* Theme picker */
+        .theme-swatch {
+            cursor: pointer;
+            border-radius: 16px;
+            padding: 0;
+            border: 2px solid transparent;
+            background: #fff;
+            box-shadow: 0 10px 26px rgba(18, 42, 74, 0.08);
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            text-align: left;
+            width: 100%;
+        }
+        .theme-swatch:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px rgba(18, 42, 74, 0.14);
+        }
+        .theme-swatch.theme-active {
+            border-color: var(--primary);
+            box-shadow: 0 18px 40px rgba(23, 59, 108, 0.20);
+        }
+        .theme-swatch .swatch-preview {
+            height: 90px;
+            position: relative;
+            overflow: hidden;
+        }
+        .theme-swatch .swatch-preview::after {
+            content: "";
+            position: absolute;
+            inset: -40% -40% auto auto;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            filter: blur(20px);
+            opacity: 0.7;
+        }
+        .theme-swatch .swatch-body {
+            padding: 0.85rem 1rem 1rem;
+        }
+        .theme-swatch .swatch-name {
+            font-weight: 800;
+            color: #1e2a3a;
+            margin-bottom: 0.15rem;
+        }
+        .theme-swatch .swatch-desc {
+            font-size: 0.82rem;
+            color: #6a778c;
+            line-height: 1.35;
+        }
+        .theme-swatch .swatch-check {
+            display: none;
+            color: #fff;
+            background: var(--primary);
+            border-radius: 999px;
+            width: 22px;
+            height: 22px;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            font-size: 0.85rem;
+        }
+        .theme-swatch.theme-active .swatch-check {
+            display: inline-flex;
+        }
+
+        /* Preview gradients per theme */
+        .swatch-navy .swatch-preview    { background: linear-gradient(135deg, #edf4ff 0%, #ffffff 55%, #f8fbff 100%); }
+        .swatch-navy .swatch-preview::after    { background: linear-gradient(135deg, #173b6c, #2b5c9f); }
+        .swatch-vibrant .swatch-preview { background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 55%, #fff7ed 100%); }
+        .swatch-vibrant .swatch-preview::after { background: linear-gradient(135deg, #4f46e5, #a855f7 55%, #f97316); opacity: 0.85; }
+        .swatch-royal .swatch-preview   { background: linear-gradient(135deg, #fbf6ea 0%, #ffffff 55%, #f6ecd2 100%); }
+        .swatch-royal .swatch-preview::after   { background: linear-gradient(135deg, #0b2545, #d4af37); }
+        .swatch-forest .swatch-preview  { background: linear-gradient(135deg, #e9f3e5 0%, #ffffff 55%, #f0f7ec 100%); }
+        .swatch-forest .swatch-preview::after  { background: linear-gradient(135deg, #1f5f3f, #d97706); }
     </style>
 </head>
 <body>
@@ -37,10 +132,14 @@
             <div class="text-primary fw-bold small">COLLEGE WEBSITE</div>
             <h1 class="fw-bold mb-1">Config Editor</h1>
             <div class="text-secondary">Edit every section of <code>config.js</code>, generate JSON, and download.</div>
+            <span id="previewStatePill" class="badge rounded-pill bg-warning text-dark mt-2 d-none">
+                <i class="bi bi-eye-fill"></i> Live preview active &mdash; unsaved edits will show on Preview / Visual editor
+                <button type="button" id="btnClearPreview" class="btn btn-sm btn-link p-0 ms-2 text-dark fw-bold" style="text-decoration:underline">Clear</button>
+            </span>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary" href="index.html" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Preview site</a>
-            <a class="btn btn-outline-primary" href="indexcopy.html" target="_blank"><i class="bi bi-pencil-square"></i> Visual editor</a>
+            <a class="btn btn-outline-primary" href="index.html" target="_blank" id="linkPreviewSite"><i class="bi bi-box-arrow-up-right"></i> Preview site</a>
+            <a class="btn btn-outline-primary" href="indexcopy.html" target="_blank" id="linkVisualEditor"><i class="bi bi-pencil-square"></i> Visual editor</a>
             <button class="btn btn-outline-secondary" id="btnLoadFile"><i class="bi bi-upload"></i> Load JSON</button>
             <input type="file" id="fileInput" accept=".json,application/json" hidden>
             <button class="btn btn-outline-secondary" id="btnResetDefaults"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
@@ -61,8 +160,16 @@
         <section class="col-lg-9">
             <div class="cardx p-3 p-lg-4">
 
+                <!-- THEME -->
+                <div class="section-panel active" data-panel="theme">
+                    <h3 class="section-title-lg mb-1">Theme</h3>
+                    <p class="text-secondary">Pick a visual style. Applies to the whole site instantly.</p>
+                    <input type="hidden" data-p="theme">
+                    <div class="row g-3" id="themePicker"></div>
+                </div>
+
                 <!-- WEBSITE SHELL -->
-                <div class="section-panel active" data-panel="website">
+                <div class="section-panel" data-panel="website">
                     <h3 class="section-title-lg mb-3">Website Shell</h3>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -496,14 +603,55 @@
     // Data
     // ---------------------------------------------------------
 
+    var PREVIEW_KEY = "COLLEGE_PREVIEW_CONFIG";
+
     var defaultConfig = window.COLLEGE_CONFIG
         ? JSON.parse(JSON.stringify(window.COLLEGE_CONFIG))
         : emptyConfig();
 
     var workingConfig = JSON.parse(JSON.stringify(defaultConfig));
 
+    // Restore in-progress edits saved from a previous editor session.
+    try {
+        var saved = localStorage.getItem(PREVIEW_KEY);
+        if (saved) {
+            var parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object") {
+                workingConfig = mergeDefaultsEarly(parsed);
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    function mergeDefaultsEarly(loaded) {
+        var base = emptyConfig();
+        Object.keys(loaded || {}).forEach(function (k) {
+            base[k] = loaded[k];
+        });
+        return base;
+    }
+
+    function savePreview() {
+        try {
+            readSimpleFields(workingConfig);
+            localStorage.setItem(PREVIEW_KEY, JSON.stringify(workingConfig));
+            reflectPreviewState(true);
+        } catch (e) { /* ignore quota errors */ }
+    }
+
+    function clearPreview() {
+        try { localStorage.removeItem(PREVIEW_KEY); } catch (e) {}
+        reflectPreviewState(false);
+    }
+
+    function reflectPreviewState(active) {
+        var pill = document.getElementById("previewStatePill");
+        if (!pill) return;
+        pill.classList.toggle("d-none", !active);
+    }
+
     function emptyConfig() {
         return {
+            theme: "navy",
             website: { logo: "", favicon: "", loader: { title: "", subtitle: "" }, footerText: "" },
             seo: { title: "", description: "", keywords: "", author: "", canonicalUrl: "", ogImage: "" },
             navbar: { brandName: "" },
@@ -527,6 +675,7 @@
     // ---------------------------------------------------------
 
     var SECTIONS = [
+        ["theme",         "Theme",           "bi-palette"],
         ["website",       "Website",         "bi-globe"],
         ["seo",           "SEO",             "bi-search"],
         ["navbar",        "Navbar",          "bi-menu-button-wide"],
@@ -571,6 +720,69 @@
             document.getElementById("jsonBox").value =
                 JSON.stringify(collectFromForm(), null, 2);
         }
+        if (window.matchMedia("(max-width: 991.98px)").matches) {
+            var panel = document.querySelector('.section-panel[data-panel="' + name + '"]');
+            if (panel) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+
+
+    // ---------------------------------------------------------
+    // Theme picker
+    // ---------------------------------------------------------
+
+    var THEMES = [
+        { id: "navy",    name: "Navy Classic",  desc: "White + navy blue with subtle gradients" },
+        { id: "vibrant", name: "Vibrant Sunset",desc: "Blue + purple + orange, softly rounded" },
+        { id: "royal",   name: "Royal Gold",    desc: "Deep navy + gold accents on cream" },
+        { id: "forest",  name: "Forest Calm",   desc: "Greens with warm amber highlights" }
+    ];
+
+    function renderThemePicker() {
+        var host = document.getElementById("themePicker");
+        if (!host) return;
+        host.innerHTML = "";
+
+        THEMES.forEach(function (t) {
+            var col = document.createElement("div");
+            col.className = "col-sm-6 col-lg-3";
+
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "theme-swatch swatch-" + t.id;
+            btn.dataset.themeOption = t.id;
+            btn.innerHTML =
+                '<div class="swatch-preview">' +
+                    '<span class="swatch-check"><i class="bi bi-check-lg"></i></span>' +
+                '</div>' +
+                '<div class="swatch-body">' +
+                    '<div class="swatch-name">' + t.name + '</div>' +
+                    '<div class="swatch-desc">' + t.desc + '</div>' +
+                '</div>';
+
+            btn.addEventListener("click", function () {
+                workingConfig.theme = t.id;
+                var hidden = document.querySelector('[data-p="theme"]');
+                if (hidden) hidden.value = t.id;
+                refreshThemeSelection();
+                savePreview();
+            });
+
+            col.appendChild(btn);
+            host.appendChild(col);
+        });
+    }
+
+    function refreshThemeSelection() {
+        var current = (workingConfig.theme || "navy").toString().toLowerCase();
+        if (["navy","vibrant","royal","forest"].indexOf(current) === -1) {
+            current = "navy";
+        }
+        document.querySelectorAll(".theme-swatch").forEach(function (el) {
+            el.classList.toggle("theme-active", el.dataset.themeOption === current);
+        });
+        var hidden = document.querySelector('[data-p="theme"]');
+        if (hidden) hidden.value = current;
     }
 
 
@@ -842,6 +1054,7 @@
     function rebuildAll() {
         populateSimpleFields();
         Object.keys(ARRAY_SCHEMAS).forEach(renderArraySection);
+        refreshThemeSelection();
     }
 
 
@@ -918,6 +1131,7 @@
         workingConfig = JSON.parse(JSON.stringify(defaultConfig));
         rebuildAll();
         document.getElementById("jsonBox").value = "";
+        clearPreview();
         toast("Reset");
     });
 
@@ -980,10 +1194,40 @@
 
 
     // ---------------------------------------------------------
+    // Live preview sync (updates sessionStorage so Preview site
+    // and Visual editor render the in-progress edits instantly).
+    // ---------------------------------------------------------
+
+    var saveTimer;
+    document.addEventListener("input",  scheduleSave);
+    document.addEventListener("change", scheduleSave);
+
+    function scheduleSave() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(savePreview, 200);
+    }
+
+    ["linkPreviewSite", "linkVisualEditor"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener("click", function () { savePreview(); });
+    });
+
+    var clearBtn = document.getElementById("btnClearPreview");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function () {
+            clearPreview();
+            toast("Preview cleared. Preview site will now use config.js.");
+        });
+    }
+
+
+    // ---------------------------------------------------------
     // Init
     // ---------------------------------------------------------
 
+    renderThemePicker();
     rebuildAll();
+    reflectPreviewState(!!localStorage.getItem(PREVIEW_KEY));
 
 })();
 </script>

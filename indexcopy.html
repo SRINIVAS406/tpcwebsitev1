@@ -163,7 +163,6 @@
                     <li class="nav-item"><a class="nav-link" href="#faculty">Faculty</a></li>
                     <li class="nav-item"><a class="nav-link" href="#gallery">Gallery</a></li>
                     <li class="nav-item"><a class="nav-link" href="#reviews">Reviews</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#admissions">Admissions</a></li>
                     <li class="nav-item ms-lg-2"><a class="btn btn-brand" href="#contact">Contact Us</a></li>
                 </ul>
             </div>
@@ -171,25 +170,26 @@
     </nav>
 
     <!-- Hero -->
-    <header id="home" class="hero">
+    <header id="home" class="hero hero-bg-mode">
+        <div class="hero-bg-wrap" aria-hidden="true">
+            <img id="heroImage" class="hero-bg-image" alt="">
+            <div class="hero-bg-overlay"></div>
+        </div>
         <div class="container">
             <div class="row align-items-center g-5">
-                <div class="col-lg-6 reveal">
+                <div class="col-lg-6 reveal hero-content">
                     <span class="eyebrow"><i class="bi bi-mortarboard-fill"></i> Higher Secondary Education</span>
                     <h1 id="heroTitle" class="mt-4"></h1>
-                    <h3 id="heroSubtitle" class="text-primary fw-bold"></h3>
+                    <h3 id="heroSubtitle" class="fw-bold"></h3>
                     <p id="heroDescription" class="lead mt-3"></p>
                     <div class="d-flex flex-wrap gap-2 mt-4">
                         <a id="heroPrimaryBtn" class="btn btn-brand" href="#about"></a>
-                        <a id="heroSecondaryBtn" class="btn btn-gold" href="#admissions"></a>
+                        <a id="heroSecondaryBtn" class="btn btn-gold" href="#contact"></a>
                     </div>
-                    <div class="d-flex flex-wrap gap-3 small text-secondary mt-4">
+                    <div class="d-flex flex-wrap gap-3 small mt-4 hero-meta">
                         <span id="heroLocationWrap" class="d-none"><i class="bi bi-geo-alt me-1"></i><span id="heroLocation"></span></span>
                         <span id="heroEstYearWrap" class="d-none"><i class="bi bi-calendar3 me-1"></i>Est. <span id="heroEstYear"></span></span>
                     </div>
-                </div>
-                <div class="col-lg-6">
-                    <img id="heroImage" class="hero-image reveal" alt="">
                 </div>
             </div>
         </div>
@@ -226,22 +226,36 @@
     <!-- Vision & Mission -->
     <section id="visionMissionSection" class="section-pad">
         <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-6">
-                    <div class="v-card h-100">
-                        <div class="feature-icon mb-3"><i class="bi bi-eye"></i></div>
-                        <h3>Our Vision</h3>
-                        <p id="visionText" class="text-secondary mb-0"></p>
+            <div id="visionMissionCarousel" class="carousel slide section-carousel vm-carousel" data-bs-ride="carousel" data-bs-interval="5000" data-bs-pause="false" data-bs-wrap="true">
+                <div class="carousel-inner">
+                    <div class="carousel-item active">
+                        <div class="v-card h-100">
+                            <div class="feature-icon mb-3"><i class="bi bi-eye"></i></div>
+                            <h3>Our Vision</h3>
+                            <p id="visionText" class="text-secondary mb-0"></p>
+                        </div>
+                    </div>
+                    <div class="carousel-item">
+                        <div class="v-card h-100">
+                            <div class="feature-icon mb-3"><i class="bi bi-bullseye"></i></div>
+                            <h3>Our Mission</h3>
+                            <p id="missionText" class="text-secondary mb-3"></p>
+                            <div id="valuesGrid" class="values-grid"></div>
+                            <div class="editor-add mt-2"><button type="button" class="btn btn-outline-primary btn-sm" data-add="visionMission.values"><i class="bi bi-plus-lg"></i> Add value</button></div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <div class="v-card h-100">
-                        <div class="feature-icon mb-3"><i class="bi bi-bullseye"></i></div>
-                        <h3>Our Mission</h3>
-                        <p id="missionText" class="text-secondary mb-3"></p>
-                        <div id="valuesGrid" class="values-grid"></div>
-                        <div class="editor-add mt-2"><button type="button" class="btn btn-outline-primary btn-sm" data-add="visionMission.values"><i class="bi bi-plus-lg"></i> Add value</button></div>
-                    </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#visionMissionCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#visionMissionCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#visionMissionCarousel" data-bs-slide-to="0" class="active" aria-label="Vision"></button>
+                    <button type="button" data-bs-target="#visionMissionCarousel" data-bs-slide-to="1" aria-label="Mission"></button>
                 </div>
             </div>
         </div>
@@ -272,7 +286,6 @@
             <div class="section-title mb-5">
                 <span class="eyebrow">Academics</span>
                 <h2 class="mt-3">Courses Offered</h2>
-                <p class="text-secondary">Course combinations are driven entirely by config.js.</p>
             </div>
             <div id="coursesGrid" class="row g-4"></div>
             <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="courses"><i class="bi bi-plus-lg"></i> Add course</button></div>
@@ -286,7 +299,18 @@
                 <span class="eyebrow">Campus Life</span>
                 <h2 class="mt-3">Facilities &amp; Resources</h2>
             </div>
-            <div id="facilitiesGrid" class="row g-4"></div>
+            <div id="facilitiesCarousel" class="carousel slide section-carousel" data-bs-ride="carousel" data-bs-interval="5000" data-bs-pause="false" data-bs-wrap="true" data-slides-per-view="3">
+                <div id="facilitiesGrid" class="carousel-inner"></div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#facilitiesCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#facilitiesCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <div id="facilitiesCarouselIndicators" class="carousel-indicators"></div>
+            </div>
             <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="facilities"><i class="bi bi-plus-lg"></i> Add facility</button></div>
         </div>
     </section>
@@ -316,54 +340,53 @@
     </section>
 
     <!-- Gallery -->
-    <section id="gallery" class="section-pad soft">
+    <section id="gallery" class="section-pad">
         <div class="container">
             <div class="section-title mb-4">
                 <span class="eyebrow">Gallery</span>
                 <h2 class="mt-3">Campus Moments</h2>
             </div>
             <div id="galleryFilters" class="gallery-filters mb-4"></div>
-            <div id="galleryGrid" class="row g-4"></div>
+            <div id="galleryCarousel" class="carousel slide section-carousel" data-bs-ride="carousel" data-bs-interval="5000" data-bs-pause="false" data-bs-wrap="true" data-slides-per-view="4">
+                <div id="galleryGrid" class="carousel-inner"></div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <div id="galleryCarouselIndicators" class="carousel-indicators"></div>
+            </div>
             <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="gallery"><i class="bi bi-plus-lg"></i> Add photo</button></div>
         </div>
     </section>
 
     <!-- Reviews -->
-    <section id="reviews" class="section-pad">
+    <section id="reviews" class="section-pad soft">
         <div class="container">
             <div class="section-title mb-5">
                 <span class="eyebrow">Testimonials</span>
                 <h2 class="mt-3">Student Reviews</h2>
             </div>
-            <div id="reviewsGrid" class="row g-4"></div>
+            <div id="reviewsCarousel" class="carousel slide section-carousel reviews-carousel" data-bs-ride="carousel" data-bs-interval="6000" data-bs-pause="false" data-bs-wrap="true" data-slides-per-view="1">
+                <div id="reviewsGrid" class="carousel-inner"></div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#reviewsCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#reviewsCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <div id="reviewsCarouselIndicators" class="carousel-indicators"></div>
+            </div>
             <div class="editor-add"><button type="button" class="btn btn-outline-primary" data-add="reviews"><i class="bi bi-plus-lg"></i> Add review</button></div>
         </div>
     </section>
 
-    <!-- Admissions -->
-    <section id="admissions" class="section-pad soft">
-        <div class="container">
-            <div class="row g-5 align-items-start">
-                <div class="col-lg-7">
-                    <span class="eyebrow">Join Us</span>
-                    <h2 id="admissionTitle" class="mt-3"></h2>
-                    <p id="admissionDescription" class="text-secondary"></p>
-                    <h5 class="mt-4">Typical Process</h5>
-                    <ol id="admissionProcess" class="process-list list-unstyled"></ol>
-                    <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="admission.process"><i class="bi bi-plus-lg"></i> Add step</button></div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="p-4 rounded-4 bg-white shadow-sm border">
-                        <h5>Eligibility</h5>
-                        <p id="admissionEligibility" class="text-secondary"></p>
-                        <h6 id="admissionDocumentsTitle" class="mt-3 d-none">Documents Required</h6>
-                        <ul id="admissionDocuments" class="documents-list list-unstyled"></ul>
-                        <div class="editor-add"><button type="button" class="btn btn-outline-primary btn-sm" data-add="admission.documents"><i class="bi bi-plus-lg"></i> Add document</button></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    <!-- Admissions section removed -->
 
     <!-- Contact -->
     <section id="contact" class="section-pad">
@@ -476,6 +499,20 @@
     </div>
 
     <script src="config.js"></script>
+    <script>
+        (function () {
+            try {
+                var raw = localStorage.getItem("COLLEGE_PREVIEW_CONFIG");
+                if (!raw) return;
+                var preview = JSON.parse(raw);
+                if (preview && typeof preview === "object") {
+                    window.COLLEGE_CONFIG = preview;
+                    window.TIMES_PU_CONFIG = preview;
+                    window.__COLLEGE_PREVIEW__ = true;
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
     <script src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

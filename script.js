@@ -149,6 +149,214 @@
 
 
     // ---------------------------------------------------------
+    // CAROUSEL HELPERS
+    // ---------------------------------------------------------
+
+    function chunkArray(items, size) {
+        var out = [];
+        var step = Math.max(1, Number(size) || 1);
+        for (var i = 0; i < items.length; i += step) {
+            out.push(items.slice(i, i + step));
+        }
+        return out;
+    }
+
+    // Build a Bootstrap carousel structure inside the container that
+    // acts as ".carousel-inner". Each slide is a Bootstrap row with the
+    // given per-slide count of item columns.
+    function buildCarousel(inner, carouselId, items, perSlide, renderItem, options) {
+        options = options || {};
+        var rowClass = options.rowClass || "row g-4 justify-content-center";
+
+        inner.innerHTML = "";
+        var carousel = document.getElementById(carouselId);
+        var indicators = document.getElementById(carouselId + "Indicators");
+        var prevBtn = carousel ? carousel.querySelector(".carousel-control-prev") : null;
+        var nextBtn = carousel ? carousel.querySelector(".carousel-control-next") : null;
+
+        if (indicators) indicators.innerHTML = "";
+
+        if (!items || !items.length) return 0;
+
+        var slides = chunkArray(items, perSlide);
+
+        slides.forEach(function (group, idx) {
+            var slide = document.createElement("div");
+            slide.className = "carousel-item" + (idx === 0 ? " active" : "");
+
+            var row = document.createElement("div");
+            row.className = rowClass;
+
+            group.forEach(function (item, itemIdx) {
+                var col = renderItem(item, idx * perSlide + itemIdx);
+                if (col) row.appendChild(col);
+            });
+
+            slide.appendChild(row);
+            inner.appendChild(slide);
+
+            if (indicators) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.setAttribute("data-bs-target", "#" + carouselId);
+                btn.setAttribute("data-bs-slide-to", String(idx));
+                btn.setAttribute("aria-label", "Slide " + (idx + 1));
+                if (idx === 0) {
+                    btn.className = "active";
+                    btn.setAttribute("aria-current", "true");
+                }
+                indicators.appendChild(btn);
+            }
+        });
+
+        // Hide controls when there's only one slide
+        var multi = slides.length > 1;
+        if (prevBtn) prevBtn.style.display = multi ? "" : "none";
+        if (nextBtn) nextBtn.style.display = multi ? "" : "none";
+        if (indicators) indicators.style.display = multi ? "" : "none";
+
+        // Re-initialise Bootstrap carousel so rides start correctly
+        if (carousel && window.bootstrap && window.bootstrap.Carousel) {
+            var existing = window.bootstrap.Carousel.getInstance(carousel);
+            if (existing) existing.dispose();
+            if (multi) {
+                var instance = window.bootstrap.Carousel.getOrCreateInstance(carousel);
+                if (instance && typeof instance.cycle === "function") {
+                    instance.cycle();
+                }
+            }
+        }
+
+        return slides.length;
+    }
+
+    // Responsive per-slide counts
+    function responsivePerSlide(desktop) {
+        var w = window.innerWidth || document.documentElement.clientWidth || 1024;
+        if (w < 576) return 1;
+        if (w < 992) return Math.min(2, desktop);
+        return desktop;
+    }
+
+
+    // ---------------------------------------------------------
+    // THEME
+    // ---------------------------------------------------------
+
+    var VALID_THEMES = ["navy", "vibrant", "royal", "forest"];
+
+    function resolveTheme() {
+        var raw = config.theme;
+        var name = "";
+        if (typeof raw === "string") {
+            name = raw;
+        } else if (raw && typeof raw === "object") {
+            name = raw.name || raw.active || raw.id || "";
+        }
+        name = String(name || "").trim().toLowerCase();
+        return VALID_THEMES.indexOf(name) !== -1 ? name : "navy";
+    }
+
+    function applyTheme() {
+        var theme = resolveTheme();
+        document.documentElement.setAttribute("data-theme", theme);
+
+        // Sync <meta name="theme-color"> for mobile browser chrome
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            var probe = document.createElement("span");
+            probe.style.color = "var(--primary)";
+            document.body ? document.body.appendChild(probe)
+                          : document.documentElement.appendChild(probe);
+            var color = getComputedStyle(probe).color;
+            probe.remove();
+            if (color) meta.setAttribute("content", color);
+        }
+    }
+
+
+    // ---------------------------------------------------------
+    // SCROLL REVEAL (subtle fade + slide when entering viewport)
+    // ---------------------------------------------------------
+
+    var REVEAL_SELECTORS = [
+        ".section-title",
+        ".stat-card",
+        ".course-card",
+        ".facility-card",
+        ".faculty-card",
+        ".achievement-card",
+        ".gallery-item",
+        ".review-card",
+        ".v-card",
+        ".contact-card",
+        ".map-frame",
+        ".empty-state",
+        ".process-list li",
+        ".documents-list li",
+        ".highlight-list li"
+    ].join(",");
+
+    var revealObserver = null;
+
+    function tagReveals() {
+        queryAll(REVEAL_SELECTORS).forEach(function (el) {
+            // Elements rendered inside a Bootstrap carousel are hidden by
+            // display:none on non-active slides, so IntersectionObserver
+            // never fires for them. Mark them as visible outright.
+            if (el.closest(".carousel-inner")) {
+                el.classList.add("reveal", "is-visible");
+                return;
+            }
+            if (!el.classList.contains("reveal")) {
+                el.classList.add("reveal");
+            }
+        });
+
+        // Stagger children within these grids (skip when converted to carousel)
+        queryAll(
+            "#statsGrid, #coursesGrid, #facultyGrid, #achievementsGrid," +
+            " #visionMissionSection .row"
+        ).forEach(function (row) {
+            row.classList.add("stagger");
+        });
+    }
+
+    function enableScrollReveal() {
+        tagReveals();
+
+        if (!("IntersectionObserver" in window)) {
+            queryAll(".reveal").forEach(function (el) {
+                el.classList.add("is-visible");
+            });
+            return;
+        }
+
+        if (!revealObserver) {
+            revealObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add("is-visible");
+                    revealObserver.unobserve(entry.target);
+                });
+            }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+        }
+
+        queryAll(".reveal").forEach(function (el) {
+            if (el.classList.contains("is-visible")) return;
+
+            // If already fully in viewport at init, reveal without delay
+            var rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight * 0.9 && rect.bottom > 0) {
+                el.classList.add("is-visible");
+                return;
+            }
+            revealObserver.observe(el);
+        });
+    }
+
+
+    // ---------------------------------------------------------
     // SEO + <head>
     // ---------------------------------------------------------
 
@@ -262,7 +470,7 @@
         setButton(
             "heroSecondaryBtn",
             hero.secondaryButton,
-            { text: "Admissions", target: "#admissions" }
+            { text: "Contact", target: "#contact" }
         );
 
         var locationText = pickFirst(
@@ -576,21 +784,33 @@
         container.innerHTML = "";
 
         if (!Array.isArray(config.facilities) || config.facilities.length === 0) {
-            container.innerHTML = emptyState(
-                "bi-building",
-                "Facilities",
-                "Facilities will be updated here."
-            );
+            container.innerHTML =
+                '<div class="carousel-item active"><div class="row g-4"><div class="col-12">' +
+                emptyState(
+                    "bi-building",
+                    "Facilities",
+                    "Facilities will be updated here."
+                ) +
+                '</div></div></div>';
+            var facCar = byId("facilitiesCarousel");
+            if (facCar) {
+                var pb = facCar.querySelector(".carousel-control-prev");
+                var nb = facCar.querySelector(".carousel-control-next");
+                if (pb) pb.style.display = "none";
+                if (nb) nb.style.display = "none";
+            }
+            var facInd = byId("facilitiesCarouselIndicators");
+            if (facInd) { facInd.innerHTML = ""; facInd.style.display = "none"; }
             return;
         }
 
-        config.facilities.forEach(function (facility) {
+        var perSlide = responsivePerSlide(3);
 
+        buildCarousel(container, "facilitiesCarousel", config.facilities, perSlide, function (facility) {
             var col = document.createElement("div");
             col.className = "col-sm-6 col-lg-4";
-
             col.innerHTML =
-                '<div class="facility-card">' +
+                '<div class="facility-card h-100">' +
                     '<div class="facility-icon">' +
                         '<i class="bi ' +
                             escapeHTML(facility.icon || "bi-building") +
@@ -599,8 +819,7 @@
                     '<h3>' + escapeHTML(facility.name || "") + '</h3>' +
                     '<p>' + escapeHTML(facility.description || "") + '</p>' +
                 '</div>';
-
-            container.appendChild(col);
+            return col;
         });
     }
 
@@ -716,6 +935,9 @@
     // GALLERY
     // ---------------------------------------------------------
 
+    var _galleryClickBound = false;
+    var _galleryFilterBound = false;
+
     function loadGallery() {
 
         var container = byId("galleryGrid");
@@ -727,17 +949,28 @@
         if (filters) filters.innerHTML = "";
 
         if (!Array.isArray(config.gallery) || config.gallery.length === 0) {
-            container.innerHTML = emptyState(
-                "bi-images",
-                "Gallery",
-                "College photographs will appear here."
-            );
+            container.innerHTML =
+                '<div class="carousel-item active"><div class="row g-4"><div class="col-12">' +
+                emptyState(
+                    "bi-images",
+                    "Gallery",
+                    "College photographs will appear here."
+                ) +
+                '</div></div></div>';
+            var galCar = byId("galleryCarousel");
+            if (galCar) {
+                var pb = galCar.querySelector(".carousel-control-prev");
+                var nb = galCar.querySelector(".carousel-control-next");
+                if (pb) pb.style.display = "none";
+                if (nb) nb.style.display = "none";
+            }
+            var galInd = byId("galleryCarouselIndicators");
+            if (galInd) { galInd.innerHTML = ""; galInd.style.display = "none"; }
             return;
         }
 
         // Filter buttons
         if (filters) {
-
             var categories = ["All"];
             config.gallery.forEach(function (item) {
                 if (!isEmpty(item.category) &&
@@ -755,21 +988,50 @@
                 filters.appendChild(btn);
             });
 
-            filters.addEventListener("click", function (evt) {
-                var target = evt.target.closest(".gallery-filter");
-                if (!target) return;
+            if (!_galleryFilterBound) {
+                filters.addEventListener("click", function (evt) {
+                    var target = evt.target.closest(".gallery-filter");
+                    if (!target) return;
 
-                queryAll(".gallery-filter").forEach(function (b) {
-                    b.classList.remove("active");
+                    queryAll(".gallery-filter").forEach(function (b) {
+                        b.classList.remove("active");
+                    });
+                    target.classList.add("active");
+
+                    renderGalleryCarousel(target.dataset.filter);
                 });
-                target.classList.add("active");
-
-                applyGalleryFilter(target.dataset.filter);
-            });
+                _galleryFilterBound = true;
+            }
         }
 
-        // Gallery cards
-        config.gallery.forEach(function (item, index) {
+        renderGalleryCarousel("All");
+
+        if (!_galleryClickBound) {
+            container.addEventListener("click", function (evt) {
+                var target = evt.target.closest(".gallery-card");
+                if (!target) return;
+                openGalleryModal(Number(target.dataset.galleryIndex));
+            });
+            _galleryClickBound = true;
+        }
+    }
+
+    function renderGalleryCarousel(category) {
+        var container = byId("galleryGrid");
+        if (!container) return;
+
+        var items = config.gallery.map(function (item, idx) {
+            return { item: item, idx: idx };
+        }).filter(function (entry) {
+            return category === "All" ||
+                (entry.item.category || "Other") === category;
+        });
+
+        var perSlide = responsivePerSlide(4);
+
+        buildCarousel(container, "galleryCarousel", items, perSlide, function (entry) {
+            var item  = entry.item;
+            var index = entry.idx;
 
             var col = document.createElement("div");
             col.className = "col-6 col-md-4 col-lg-3 gallery-item";
@@ -800,22 +1062,13 @@
 
                 '</button>';
 
-            container.appendChild(col);
-        });
-
-        container.addEventListener("click", function (evt) {
-            var target = evt.target.closest(".gallery-card");
-            if (!target) return;
-            openGalleryModal(Number(target.dataset.galleryIndex));
+            return col;
         });
     }
 
     function applyGalleryFilter(category) {
-        queryAll(".gallery-item").forEach(function (item) {
-            var visible = category === "All" ||
-                          item.dataset.category === category;
-            item.style.display = visible ? "" : "none";
-        });
+        // kept for backwards compatibility - now rebuilds carousel
+        renderGalleryCarousel(category);
     }
 
     function openGalleryModal(index) {
@@ -852,18 +1105,32 @@
         container.innerHTML = "";
 
         if (!Array.isArray(config.reviews) || config.reviews.length === 0) {
-            container.innerHTML = emptyState(
-                "bi-chat-quote",
-                "Student Reviews",
-                "Student testimonials will be displayed here."
-            );
+            container.innerHTML =
+                '<div class="carousel-item active"><div class="row g-4"><div class="col-12">' +
+                emptyState(
+                    "bi-chat-quote",
+                    "Student Reviews",
+                    "Student testimonials will be displayed here."
+                ) +
+                '</div></div></div>';
+            var revCar = byId("reviewsCarousel");
+            if (revCar) {
+                var pb = revCar.querySelector(".carousel-control-prev");
+                var nb = revCar.querySelector(".carousel-control-next");
+                if (pb) pb.style.display = "none";
+                if (nb) nb.style.display = "none";
+            }
+            var revInd = byId("reviewsCarouselIndicators");
+            if (revInd) { revInd.innerHTML = ""; revInd.style.display = "none"; }
             return;
         }
 
-        config.reviews.slice(0, 6).forEach(function (review) {
+        var reviews = config.reviews.slice(0, 12);
+
+        buildCarousel(container, "reviewsCarousel", reviews, 1, function (review) {
 
             var col = document.createElement("div");
-            col.className = "col-md-6 col-xl-4";
+            col.className = "col-lg-8 mx-auto";
 
             var rating = Math.max(0, Math.min(5,
                 Number(review.rating) || 0));
@@ -890,7 +1157,7 @@
             col.innerHTML =
                 '<div class="review-card">' +
                     '<div class="review-stars">' + stars + '</div>' +
-                    '<blockquote>&ldquo;' +
+                    '<blockquote class="review-text">&ldquo;' +
                         escapeHTML(reviewText) +
                     '&rdquo;</blockquote>' +
                     '<div class="review-user">' +
@@ -908,7 +1175,26 @@
                     '</div>' +
                 '</div>';
 
-            container.appendChild(col);
+            return col;
+        }, { rowClass: "row g-4 justify-content-center" });
+
+        // After render, if any review text spans more than a single line
+        // enable the in-card scroll carousel by tagging the blockquote.
+        setTimeout(markOverflowingReviews, 60);
+    }
+
+    function markOverflowingReviews() {
+        queryAll(".review-text").forEach(function (el) {
+            var style = window.getComputedStyle(el);
+            var lh = parseFloat(style.lineHeight);
+            if (!lh || isNaN(lh)) lh = parseFloat(style.fontSize) * 1.4;
+            // "more than a line" => allow up to ~1 line before enabling the
+            // internal scroll-snap "line carousel"
+            if (el.scrollHeight > lh + 4) {
+                el.classList.add("is-multiline");
+            } else {
+                el.classList.remove("is-multiline");
+            }
         });
     }
 
@@ -1386,6 +1672,7 @@
     function renderAll(nextConfig) {
         useConfig(nextConfig);
         try {
+            applyTheme();
             loadSEO();
             loadLogo();
             loadNavbar();
@@ -1408,6 +1695,7 @@
             loadFooter();
 
             loadStructuredData();
+            enableScrollReveal();
         } catch (err) {
             console.error("Website render error:", err);
         }
@@ -1419,6 +1707,63 @@
         enableActiveNav();
         enableNavbarShadow();
         enableImageFallback();
+        enablePreviewBadge();
+        enableCarouselResponsive();
+    }
+
+    function enableCarouselResponsive() {
+        var lastBucket = responsivePerSlide(4);
+        var lastFacBucket = responsivePerSlide(3);
+        var resizeTimer;
+
+        window.addEventListener("resize", function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                var gal = responsivePerSlide(4);
+                var fac = responsivePerSlide(3);
+                if (gal !== lastBucket) {
+                    lastBucket = gal;
+                    var activeFilter = "All";
+                    var activeBtn = document.querySelector(".gallery-filter.active");
+                    if (activeBtn) activeFilter = activeBtn.dataset.filter || "All";
+                    renderGalleryCarousel(activeFilter);
+                }
+                if (fac !== lastFacBucket) {
+                    lastFacBucket = fac;
+                    loadFacilities();
+                }
+                markOverflowingReviews();
+            }, 180);
+        });
+    }
+
+    function enablePreviewBadge() {
+        if (!window.__COLLEGE_PREVIEW__) return;
+        if (document.getElementById("collegePreviewBadge")) return;
+
+        var badge = document.createElement("div");
+        badge.id = "collegePreviewBadge";
+        badge.setAttribute("role", "status");
+        badge.style.cssText =
+            "position:fixed;left:1rem;bottom:1rem;z-index:9998;" +
+            "background:#ffb703;color:#1e2a3a;font-weight:700;" +
+            "padding:0.55rem 0.9rem;border-radius:999px;" +
+            "box-shadow:0 12px 30px rgba(0,0,0,0.18);font-size:0.85rem;" +
+            "display:inline-flex;align-items:center;gap:0.5rem;" +
+            "font-family:Inter,system-ui,sans-serif;";
+        badge.innerHTML =
+            '<i class="bi bi-eye-fill"></i>' +
+            '<span>Preview mode</span>' +
+            '<button type="button" style="border:0;background:transparent;color:#1e2a3a;' +
+                'font-weight:800;cursor:pointer;padding:0 0.25rem;text-decoration:underline">' +
+                'Clear</button>';
+
+        badge.querySelector("button").addEventListener("click", function () {
+            try { localStorage.removeItem("COLLEGE_PREVIEW_CONFIG"); } catch (e) {}
+            location.reload();
+        });
+
+        document.body.appendChild(badge);
     }
 
     // Expose a minimal public API for tools (visual editor, etc.).
