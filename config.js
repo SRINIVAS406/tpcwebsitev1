@@ -187,7 +187,7 @@ window.COLLEGE_CONFIG = {
             "category": "Laboratory",
             "title": "Science Laboratory",
             "description": "Practical learning environment.",
-            "image": "images/lab.jpeg",
+            "image": "images/Lab.jpeg",
             "alt": "Science laboratory equipment"
         },
         {
