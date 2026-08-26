@@ -227,7 +227,77 @@
             }
         }
 
+        // Pin the inner to the tallest slide so height changes between
+        // slides don't cause layout jumps / flicker during transitions.
+        scheduleCarouselHeightSync(carouselId);
+
         return slides.length;
+    }
+
+    // Track carousels that need height syncing so we can re-run on
+    // resize / image load without duplicating work.
+    var syncedCarouselIds = {};
+
+    function scheduleCarouselHeightSync(carouselId) {
+        if (!carouselId) return;
+        syncedCarouselIds[carouselId] = true;
+
+        // Wait one frame so cards, images and fonts have a chance to
+        // reach their natural size before we measure.
+        requestAnimationFrame(function () {
+            equalizeCarouselHeight(carouselId);
+            // Re-measure after each image inside the carousel loads.
+            var carousel = document.getElementById(carouselId);
+            if (!carousel) return;
+            var imgs = carousel.querySelectorAll("img");
+            for (var i = 0; i < imgs.length; i++) {
+                var img = imgs[i];
+                if (!img.complete) {
+                    img.addEventListener("load", function () {
+                        equalizeCarouselHeight(carouselId);
+                    }, { once: true });
+                    img.addEventListener("error", function () {
+                        equalizeCarouselHeight(carouselId);
+                    }, { once: true });
+                }
+            }
+        });
+    }
+
+    function equalizeCarouselHeight(carouselId) {
+        var carousel = document.getElementById(carouselId);
+        if (!carousel) return;
+        var inner = carousel.querySelector(".carousel-inner");
+        if (!inner) return;
+        var items = inner.querySelectorAll(":scope > .carousel-item");
+        if (!items.length) {
+            inner.style.minHeight = "";
+            return;
+        }
+
+        // Reset before measuring so we get the true natural height.
+        inner.style.minHeight = "";
+        inner.classList.add("is-measuring-heights");
+
+        var maxHeight = 0;
+        for (var i = 0; i < items.length; i++) {
+            var h = items[i].getBoundingClientRect().height;
+            if (h > maxHeight) maxHeight = h;
+        }
+
+        inner.classList.remove("is-measuring-heights");
+
+        if (maxHeight > 0) {
+            inner.style.minHeight = Math.ceil(maxHeight) + "px";
+        }
+    }
+
+    function resyncAllCarouselHeights() {
+        for (var id in syncedCarouselIds) {
+            if (Object.prototype.hasOwnProperty.call(syncedCarouselIds, id)) {
+                equalizeCarouselHeight(id);
+            }
+        }
     }
 
     // Responsive per-slide counts
@@ -455,11 +525,9 @@
         setText("heroSubtitle",    hero.subtitle);
         setText("heroDescription", hero.description);
 
-        setImage(
-            "heroImage",
-            pickFirst(hero.image, (config.images || {}).hero),
-            (college.name || "") + " campus"
-        );
+        var heroSrc = pickFirst(hero.image, (config.images || {}).hero);
+        var heroAlt = (college.name || "") + " campus";
+        setImage("heroImage", heroSrc, heroAlt);
 
         setButton(
             "heroPrimaryBtn",
@@ -671,6 +739,10 @@
             pill.textContent = value;
             container.appendChild(pill);
         });
+
+        // Vision/Mission is authored in HTML, not through buildCarousel,
+        // so hook it into the same height-sync pipeline.
+        scheduleCarouselHeightSync("visionMissionCarousel");
     }
 
 
@@ -1733,6 +1805,9 @@
                     loadFacilities();
                 }
                 markOverflowingReviews();
+                // Re-measure heights so slide-to-slide transitions stay
+                // stable at the new viewport width.
+                resyncAllCarouselHeights();
             }, 180);
         });
     }

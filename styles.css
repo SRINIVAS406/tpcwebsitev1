@@ -1361,6 +1361,11 @@ body {
         margin-top: 2rem;
     }
 
+    /* Hero image sits inline in the right column, so no extra top margin */
+    #heroImage {
+        margin-top: 0;
+    }
+
     .navbar-collapse {
         background: var(--page-bg);
         margin-top: 0.5rem;
@@ -1390,118 +1395,18 @@ body {
 
 
 /* =========================================================
- * HERO — split-blur background (clear on left, blurred on right)
+ * HERO IMAGE — responsive aspect ratio for the right column
  * ========================================================= */
 
-.hero.hero-bg-mode {
-    padding: 9rem 0 5rem;
-    min-height: 88vh;
+/* Portrait on narrow viewports (image column is only ~5/12 wide),
+   landscape on desktop (image column is 6/12). */
+#heroImage {
+    aspect-ratio: 4 / 5;
 }
 
-.hero.hero-bg-mode > .container {
-    position: relative;
-    z-index: 3;
-}
-
-.hero-bg-wrap {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    z-index: 0;
-    pointer-events: none;
-}
-
-.hero-bg-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transform-origin: center center;
-    animation: heroKenBurns 22s ease-in-out infinite alternate;
-    filter: saturate(1.05) contrast(1.02);
-    will-change: transform;
-    z-index: 0;
-}
-
-/* Soft light readability wash on the LEFT only — no primary-dark tint. */
-.hero-bg-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: linear-gradient(to right,
-        rgba(255, 255, 255, 0.88) 0%,
-        rgba(255, 255, 255, 0.62) 25%,
-        rgba(255, 255, 255, 0.15) 50%,
-        rgba(255, 255, 255, 0.00) 68%);
-    pointer-events: none;
-}
-
-@keyframes heroKenBurns {
-    0%   { transform: scale(1.08) translate3d(0, 0, 0); }
-    50%  { transform: scale(1.16) translate3d(-2%, -1.5%, 0); }
-    100% { transform: scale(1.1)  translate3d(2%, 1.5%, 0); }
-}
-
-/* Hide default hero blob decorations when using the split-blur bg */
-.hero.hero-bg-mode::before,
-.hero.hero-bg-mode::after {
-    display: none;
-}
-
-/* Dark, readable text over the soft light overlay. */
-.hero.hero-bg-mode .hero-content h1 {
-    color: var(--ink);
-    text-shadow: 0 2px 14px rgba(255, 255, 255, 0.6);
-}
-
-.hero.hero-bg-mode .hero-content h3 {
-    color: var(--primary);
-    text-shadow: 0 2px 12px rgba(255, 255, 255, 0.5);
-}
-
-.hero.hero-bg-mode .hero-content .lead {
-    color: var(--muted);
-    max-width: 620px;
-}
-
-.hero.hero-bg-mode .hero-content .eyebrow {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--primary);
-    box-shadow: 0 8px 24px rgba(20, 40, 80, 0.15);
-}
-
-.hero.hero-bg-mode .hero-meta {
-    color: var(--muted);
-}
-
-.hero.hero-bg-mode .hero-meta .bi {
-    color: var(--primary);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .hero-bg-image {
-        animation: none !important;
-        transform: scale(1.06);
-    }
-}
-
-@media (max-width: 991px) {
-    /* On smaller screens content stacks over the full-width background:
-       fade the overlay top-to-bottom so text at the top still reads well. */
-    .hero-bg-overlay {
-        background: linear-gradient(to bottom,
-            rgba(255, 255, 255, 0.85) 0%,
-            rgba(255, 255, 255, 0.55) 40%,
-            rgba(255, 255, 255, 0.05) 80%);
-    }
-}
-
-@media (max-width: 575px) {
-    .hero.hero-bg-mode {
-        padding: 7rem 0 3rem;
-        min-height: 72vh;
+@media (min-width: 992px) {
+    #heroImage {
+        aspect-ratio: 16 / 10;
     }
 }
 
@@ -1513,19 +1418,52 @@ body {
 .section-carousel {
     position: relative;
     padding: 0 3.5rem;
+    /* Let vertical page scroll pass through while Bootstrap handles
+       horizontal swipes — natural touch feel on Android and iOS. */
+    touch-action: pan-y;
 }
 
 .section-carousel .carousel-inner {
     overflow: hidden;
     border-radius: var(--radius-md);
+    /* Own compositor layer prevents mobile paint flicker mid-swipe. */
+    transform: translateZ(0);
+    /* Height is measured and pinned by JS (see equalizeCarouselHeight)
+       so slides with different content don't cause layout jumps. */
+    transition: min-height 0.35s ease;
 }
 
-/* Smoother slide animation with subtle inertia and a soft cross-fade
-   so items feel polished at fast intervals. */
+/* One uniform, smooth transition on every device — no mobile override.
+   Duration is long enough to look live, short enough not to lag. */
 .section-carousel .carousel-item {
     transition:
-        transform 0.75s cubic-bezier(0.65, 0, 0.35, 1),
+        transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
         opacity 0.55s ease;
+    will-change: transform, opacity;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Make every slide fill the pinned inner height so short slides don't
+   collapse and long slides don't push the inner mid-transition. */
+.section-carousel .carousel-item {
+    min-height: 100%;
+}
+
+/* JS-only measurement helper: stack all slides in the same box so we
+   can read each one's natural height, then remove the class. */
+.section-carousel .carousel-inner.is-measuring-heights > .carousel-item {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    visibility: hidden !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 0 !important;
 }
 
 .section-carousel .carousel-item.active,
@@ -1679,6 +1617,9 @@ body {
     }
     .reviews-carousel .review-card {
         padding: 1.5rem 1.25rem;
+    }
+    .section-carousel .carousel-item > .row {
+        padding: 0.5rem 0.25rem 1rem;
     }
 }
 

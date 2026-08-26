@@ -170,26 +170,24 @@
     </nav>
 
     <!-- Hero -->
-    <header id="home" class="hero hero-bg-mode">
-        <div class="hero-bg-wrap" aria-hidden="true">
-            <img id="heroImage" class="hero-bg-image" alt="">
-            <div class="hero-bg-overlay"></div>
-        </div>
+    <header id="home" class="hero">
         <div class="container">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6 reveal hero-content">
+            <div class="row align-items-center g-4 g-lg-5">
+                <div class="col-7 col-lg-6 reveal hero-content">
                     <span class="eyebrow"><i class="bi bi-mortarboard-fill"></i> Higher Secondary Education</span>
                     <h1 id="heroTitle" class="mt-4"></h1>
                     <h3 id="heroSubtitle" class="fw-bold"></h3>
                     <p id="heroDescription" class="lead mt-3"></p>
                     <div class="d-flex flex-wrap gap-2 mt-4">
                         <a id="heroPrimaryBtn" class="btn btn-brand" href="#about"></a>
-                        <a id="heroSecondaryBtn" class="btn btn-gold" href="#contact"></a>
                     </div>
                     <div class="d-flex flex-wrap gap-3 small mt-4 hero-meta">
                         <span id="heroLocationWrap" class="d-none"><i class="bi bi-geo-alt me-1"></i><span id="heroLocation"></span></span>
                         <span id="heroEstYearWrap" class="d-none"><i class="bi bi-calendar3 me-1"></i>Est. <span id="heroEstYear"></span></span>
                     </div>
+                </div>
+                <div class="col-5 col-lg-6">
+                    <img id="heroImage" class="hero-image" alt="">
                 </div>
             </div>
         </div>
@@ -501,13 +499,32 @@
     <script src="config.js"></script>
     <script>
         (function () {
+            function isEmptyValue(v) {
+                if (v === undefined || v === null) return true;
+                if (Array.isArray(v)) return v.length === 0;
+                if (typeof v === "object") return Object.keys(v).length === 0;
+                if (typeof v === "string") return v.trim() === "";
+                return false;
+            }
+
             try {
                 var raw = localStorage.getItem("COLLEGE_PREVIEW_CONFIG");
                 if (!raw) return;
                 var preview = JSON.parse(raw);
                 if (preview && typeof preview === "object") {
-                    window.COLLEGE_CONFIG = preview;
-                    window.TIMES_PU_CONFIG = preview;
+                    // Merge preview on top of base config.js. Skip preview
+                    // keys that are empty when the base has real data, so a
+                    // stale editor payload can't hide freshly added config
+                    // sections (e.g. `faculty`).
+                    var base = window.COLLEGE_CONFIG || {};
+                    var merged = {};
+                    Object.keys(base).forEach(function (k) { merged[k] = base[k]; });
+                    Object.keys(preview).forEach(function (k) {
+                        if (isEmptyValue(preview[k]) && !isEmptyValue(base[k])) return;
+                        merged[k] = preview[k];
+                    });
+                    window.COLLEGE_CONFIG = merged;
+                    window.TIMES_PU_CONFIG = merged;
                     window.__COLLEGE_PREVIEW__ = true;
                 }
             } catch (e) { /* ignore */ }

@@ -74,7 +74,7 @@ window.COLLEGE_CONFIG = {
         {
             "key": "result",
             "value": "",
-            "label": "Results",
+            "label": "Lab Facility",
             "suffix": "%"
         },
         {
@@ -127,7 +127,7 @@ window.COLLEGE_CONFIG = {
             "eligibility": "Verify current eligibility with the college."
         },
         {
-            "name": "PCMCs",
+            "name": "PCMS",
             "fullName": "Physics, Chemistry, Mathematics, Computer Science",
             "description": "",
             "duration": "2 Years",
@@ -166,7 +166,26 @@ window.COLLEGE_CONFIG = {
             "description": "Student canteen facility."
         }
     ],
-    "faculty": [],
+    "faculty": [
+        {
+            "name": "Prof. Sagar M, Physics",
+            "designation": "",
+            "subject": "",
+            "photo": "images/Physics.png"
+        },
+        {
+            "name": "Prof. Shwetha Bodke, Biology",
+            "designation": "",
+            "subject": "",
+            "photo": "images/Biology.png"
+        },
+        {
+            "name": "Prof. Umesh S, Chemistry",
+            "designation": "",
+            "subject": "",
+            "photo": "images/Chemistry.png"
+        }
+    ],
     "achievements": [],
     "gallery": [
         {
@@ -187,7 +206,7 @@ window.COLLEGE_CONFIG = {
             "category": "Laboratory",
             "title": "Science Laboratory",
             "description": "Practical learning environment.",
-            "image": "images/Lab.jpeg",
+            "image": "images/lab.jpeg",
             "alt": "Science laboratory equipment"
         },
         {
